@@ -9,7 +9,27 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
 </head>
 <body>
-  <div class="container">
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBf5K3WcnK7ETfnpwt_OjR14PrTElzg82c",
+      authDomain: "habit-tracker-76114.firebaseapp.com",
+      projectId: "habit-tracker-76114",
+      storageBucket: "habit-tracker-76114.appspot.com",
+      messagingSenderId: "1048914443296",
+      appId: "1:1048914443296:web:8c8fa02e9ebafd9d069045"
+    };firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+auth.onAuthStateChanged(user => {
+  if (!user) {
+    window.location.href = "login.html";
+  } else {
+    loadTasks(user.uid);
+  }
+});
+
+  </script>  <div class="container">
     <h1>Discipline is Your New Habit</h1>
     <div class="task-input">
       <input type="text" id="taskInput" placeholder="Enter your daily task" />
@@ -19,37 +39,34 @@
     <button onclick="downloadPDF()">Export as PDF</button>
     <button onclick="logout()">Logout</button>
   </div>  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBf5K3WcnK7ETfnpwt_OjR14PrTElzg82c",
-      authDomain: "habit-tracker-76114.firebaseapp.com",
-      projectId: "habit-tracker-76114",
-      storageBucket: "habit-tracker-76114.appspot.com",
-      messagingSenderId: "1048914443296",
-      appId: "1:1048914443296:web:8c8fa02e9ebafd9d069045"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-
-    auth.onAuthStateChanged(user => {
-      if (!user) {
-        window.location.href = "login.html";
-      } else {
-        loadTasks(user.uid);
-      }
-    });
-
     function addTask() {
-      const taskText = document.getElementById("taskInput").value;
-      if (!taskText) return;
-      const uid = auth.currentUser.uid;
+      const taskText = document.getElementById("taskInput").value.trim();
+      if (!taskText) {
+        alert("Please enter a task.");
+        return;
+      }
+
+      const user = auth.currentUser;
+      if (!user) {
+        alert("User not logged in.");
+        return;
+      }
+
+      const uid = user.uid;
       const today = new Date().toISOString().split('T')[0];
+
       db.collection("users").doc(uid).collection("tasks").doc(taskText).set({
         [today]: true,
         name: taskText
-      }, { merge: true });
-      document.getElementById("taskInput").value = "";
-      loadTasks(uid);
+      }, { merge: true })
+      .then(() => {
+        console.log("Task added:", taskText);
+        document.getElementById("taskInput").value = "";
+        loadTasks(uid);
+      })
+      .catch(error => {
+        console.error("Error adding task:", error);
+      });
     }
 
     function loadTasks(uid) {
@@ -82,9 +99,14 @@
     }
 
     function logout() {
-      auth.signOut().then(() => {
-        window.location.href = "login.html";
-      });
+      auth.signOut()
+        .then(() => {
+          console.log("Signed out");
+          window.location.href = "login.html";
+        })
+        .catch(error => {
+          console.error("Logout error:", error);
+        });
     }
   </script></body>
 </html>
